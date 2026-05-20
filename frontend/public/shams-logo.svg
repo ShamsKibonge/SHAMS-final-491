@@ -1,0 +1,27 @@
+<svg width="512" height="512" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Shield (Mitigation) -->
+  <path d="M50 5L90 20V60C90 75 75 88 50 95C25 88 10 75 10 60V20L50 5Z" fill="#1976D2" fill-opacity="0.1" stroke="#1976D2" stroke-width="2"/>
+  
+  <!-- Sun Core (Shams) -->
+  <circle cx="50" cy="50" r="12" fill="#FFB300" stroke="#FF8F00" stroke-width="2"/>
+  
+  <!-- Sun Rays (Shedding Light/Data Streams) -->
+  <rect x="48" y="28" width="4" height="8" rx="2" fill="#FFB300"/>
+  <rect x="48" y="64" width="4" height="8" rx="2" fill="#FFB300"/>
+  <rect x="64" y="48" width="8" height="4" rx="2" fill="#FFB300"/>
+  <rect x="28" y="48" width="8" height="4" rx="2" fill="#FFB300"/>
+  
+  <!-- Diagonal Rays -->
+  <rect x="61" y="36" width="4" height="6" rx="2" transform="rotate(45 61 36)" fill="#FFB300"/>
+  <rect x="36" y="61" width="4" height="6" rx="2" transform="rotate(45 36 61)" fill="#FFB300"/>
+  <rect x="63" y="61" width="6" height="4" rx="2" transform="rotate(45 63 61)" fill="#FFB300"/>
+  <rect x="38" y="36" width="6" height="4" rx="2" transform="rotate(45 38 36)" fill="#FFB300"/>
+
+  <!-- Crosshair (Hunting) -->
+  <circle cx="50" cy="50" r="18" stroke="#212121" stroke-width="1" stroke-dasharray="2 2"/>
+  <line x1="50" y1="30" x2="50" y2="70" stroke="#212121" stroke-width="1"/>
+  <line x1="30" y1="50" x2="70" y2="50" stroke="#212121" stroke-width="1"/>
+  
+  <!-- Logo Text -->
+  <text x="50" y="115" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#212121">SHAMS</text>
+</svg>

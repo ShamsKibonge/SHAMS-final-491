@@ -1,0 +1,41 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# testing
+coverage/
+
+# production
+build/
+dist/
+
+# misc
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local backend secrets and runtime state
+backend/.env
+backend/.server-test*.log
+backend/.server-test.pid
+backend/server-test*.log
+backend/*.log
+backend/data/**/*.json
+!backend/data/.gitkeep
+!backend/data/tickets/.gitkeep
+backend/soc_triage_data*.json
+backend/soc_triage_summary*.json
+
+# exported local telemetry samples
+*.csv
+
+# OS
+Thumbs.db
