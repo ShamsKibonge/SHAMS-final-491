@@ -182,7 +182,8 @@ export default class MantisClient {
                 id: d.id,
                 summary: d.summary,
                 status: d.status.name,
-                created_at: d.created_at
+                created_at: d.created_at,
+                ticket_url: `${this.baseUrl}/view.php?id=${d.id}`
             }));
             
         } catch (err) {
