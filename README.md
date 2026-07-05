@@ -1,116 +1,181 @@
-# S.H.A.M.S - SOC Hunting And Mitigation System
+# S.H.A.M.S. - SOC Hunting and Mitigation System
 
-S.H.A.M.S is an AI-assisted SOC triage platform built for the Bellevue College SEC490/491 Senior Capstone. It turns high-volume OpenSearch security telemetry into grouped, explainable investigation cases, helps analysts pivot through evidence, and connects final decisions to MantisBT ticket workflows.
+**AI-assisted SOC triage platform for OpenSearch telemetry, analyst case grouping, investigation pivots, and MantisBT ticket workflows.**
 
-The project started from a Kibana/ELK-style SOC workflow, where analysts manually searched Suricata alerts, filtered noise, pivoted across IPs and signatures, and wrote tickets by hand. The final working version uses OpenSearch as the telemetry backend and adds an automated investigation layer on top of it.
+S.H.A.M.S. turns high-volume security telemetry into grouped, explainable investigation cases. It was built as a senior cybersecurity capstone and is presented here as a portfolio case study in SOC automation, alert triage, and security-engineering workflow design.
 
-## What S.H.A.M.S Solves
+> This repository documents a finished prototype. It is not a production SOC platform, managed detection service, or replacement for analyst judgment.
 
-SOC analysts do not only need more logs. They need faster answers to practical questions:
+## Executive Summary
 
-- Which alerts are actually worth investigating?
-- Are multiple logs part of the same case?
-- What evidence supports escalation or closure?
-- What pivot should be checked next?
-- Has this source, destination, host, or behavior appeared in prior tickets?
-- Can a ticket be drafted with enough context for another analyst to understand it?
+Security teams often have enough logs but not enough time to convert those logs into clear, evidence-backed decisions. S.H.A.M.S. addresses that gap by collecting OpenSearch-backed Suricata and Zeek telemetry, grouping related events into case candidates, using AI to assist with triage reasoning, executing follow-up pivots, and preparing MantisBT tickets with structured evidence.
 
-S.H.A.M.S focuses on that workflow. It groups telemetry into case candidates, ranks the most important cases, uses OpenAI to reason over the evidence, executes follow-up pivots when needed, and preserves ticket/case history for analyst review.
+The project demonstrates a practical SOC workflow:
 
-## Core Capabilities
+- Collect and normalize telemetry from OpenSearch.
+- Classify activity into investigation categories such as C2, malware, brute force, DNS tunneling, scanning, exploit attempts, and web exploitation.
+- Group related logs into case candidates with stable fingerprints.
+- Use AI to summarize evidence, recommend pivots, and produce an analyst-readable verdict.
+- Preserve ticket and case history so prior decisions can inform future triage.
+- Keep the analyst in control of final ticket review and submission.
 
-- **OpenSearch telemetry collection**
-  - Queries Suricata, Zeek, HTTP, DNS, SSL, notice, connection, and alert datasets.
-  - Uses OpenSearch fields verified against the working environment instead of relying on generic Kibana assumptions.
-  - Generates evidence links back into OpenSearch Dashboards.
+## Security Problem
 
-- **SOC case grouping**
-  - Groups related logs into deterministic case records.
-  - Uses category-aware fingerprints for C2, DNS tunneling, exploit attempts, brute force, recon, web exploitation, lateral movement, and malware.
-  - Tracks first seen, last seen, log count, affected hosts, ports, indicators, and sample evidence.
+Raw alert dashboards can overwhelm junior analysts. A single incident may appear as many logs across Suricata alerts, Zeek DNS records, HTTP records, SSL metadata, notices, and connection events. Analysts must repeatedly answer the same questions:
 
-- **AI-assisted investigation**
-  - Sends structured case evidence to OpenAI.
-  - Returns JSON verdicts, confidence, reasoning, classifications, ticket recommendations, and pivot requests.
-  - Supports reassessment after pivot results are collected.
+- Which alerts are worth investigating?
+- Are multiple events part of the same case?
+- What evidence supports escalation, monitoring, or closure?
+- Which pivot should be checked next?
+- Has this source IP, destination IP, host, signature, or URL appeared in previous tickets?
+- Can a ticket be created with enough context for another analyst to act on it?
 
-- **Automated Case Manager v1**
-  - Launches a last-hour OpenSearch grouping run.
-  - Ranks cases locally before spending AI calls.
-  - Investigates the highest-value cases automatically.
-  - Shows live progress, current stage, active case, events, and final investigation output.
-
-- **Pivot execution**
-  - Executes AI-recommended OpenSearch pivots.
-  - Supports pivots over source IP, destination IP, signatures, CVEs, destination ports, HTTP URLs, target hosts, DNS names, TLS SNI, and extended time ranges.
-
-- **MantisBT ticket workflow**
-  - Checks for possible duplicate tickets.
-  - Creates evidence-backed Mantis tickets.
-  - Syncs user ticket history from Mantis.
-  - Stores analyst memory locally so prior decisions can inform future triage.
+S.H.A.M.S. was designed around that workflow. It does not claim to detect everything. It focuses on reducing repetitive triage work and making the evidence trail easier to inspect.
 
 ## Architecture
 
-```text
-Network telemetry
-      |
-      v
-Suricata / Zeek style security events
-      |
-      v
-Fluent Bit / ingestion pipeline
-      |
-      v
-OpenSearch indexes and dashboards
-      |
-      v
-S.H.A.M.S Backend
-  - OpenSearch collector
-  - case grouping and fingerprinting
-  - AI investigation service
-  - pivot executor
-  - Mantis integration
-  - local JSON case/ticket stores
-      |
-      v
-S.H.A.M.S React Frontend
-  - Dashboard v1
-  - Case Manager v1
-  - Ticket Registry
+```mermaid
+flowchart LR
+    A[Network Security Telemetry] --> B[Suricata and Zeek Events]
+    B --> C[Ingestion Pipeline]
+    C --> D[(OpenSearch Indexes)]
+    D --> E[Node/Express Backend]
+    E --> F[Collector and Classifier]
+    E --> G[Case Grouping and Fingerprinting]
+    E --> H[Pivot Executor]
+    E --> I[AI Investigation Service]
+    E --> J[MantisBT Integration]
+    G --> K[(Local Case and Ticket JSON Stores)]
+    I --> K
+    J --> K
+    E --> L[React Frontend]
+    L --> M[Dashboard v1]
+    L --> N[Case Manager v1]
+    L --> O[Ticket Registry]
 ```
 
-## Application Views
+## SOC Workflow
 
-### Dashboard v1
+```mermaid
+flowchart TD
+    A[Refresh OpenSearch telemetry] --> B[Categorize events by SOC use case]
+    B --> C[Group related logs into case candidates]
+    C --> D[Analyst reviews case evidence]
+    D --> E{Run AI analysis?}
+    E -->|Yes| F[AI returns assessment, confidence, verdict, and pivots]
+    F --> G{Pivot needed?}
+    G -->|Yes| H[Execute OpenSearch pivot]
+    H --> I[Reassess with pivot results]
+    I --> J{Ticket recommended?}
+    G -->|No| J
+    E -->|No| J
+    J -->|Yes| K[Check MantisBT duplicates]
+    K --> L[Preview and edit ticket]
+    L --> M[Submit to MantisBT]
+    J -->|No| N[Monitor or close as likely false positive]
+    M --> O[Save local ticket history]
+    N --> O
+```
 
-The dashboard presents grouped OpenSearch case candidates by SOC category. Analysts can inspect case evidence, run AI analysis, execute pivots, check duplicates, and create tickets from the same workflow.
+## Telemetry Workflow
 
-### Case Manager v1
+```mermaid
+sequenceDiagram
+    participant OS as OpenSearch
+    participant API as S.H.A.M.S. Backend
+    participant AI as OpenAI API
+    participant UI as React Frontend
+    participant MBT as MantisBT
 
-Case Manager v1 is the autonomous investigation console. It runs a last-hour OpenSearch grouping job, ranks cases, investigates the highest-value candidates with OpenAI, executes limited pivots, and displays live status as the run progresses.
+    UI->>API: Refresh triage summary
+    API->>OS: Query alert, dns, http, notice, conn, ssl datasets
+    OS-->>API: Matching events
+    API->>API: Normalize fields, filter noise, group cases
+    API-->>UI: Case candidates and evidence samples
+    UI->>API: Analyze selected case
+    API->>AI: Structured case evidence
+    AI-->>API: JSON assessment and recommended pivots
+    UI->>API: Execute pivot
+    API->>OS: Lucene query over OpenSearch time range
+    OS-->>API: Pivot hits and summary
+    UI->>API: Create ticket
+    API->>MBT: MantisBT REST issue create
+    API->>API: Save local ticket history
+```
+
+## Technology Stack
+
+| Area | Technologies |
+| --- | --- |
+| Frontend | React, Create React App, CSS |
+| Backend | Node.js, Express, JavaScript ES modules |
+| Telemetry | OpenSearch, OpenSearch Dashboards links, Suricata-style alerts, Zeek DNS/HTTP/SSL/notice/conn records |
+| AI workflow | OpenAI chat completions with structured JSON responses |
+| Ticketing | MantisBT REST API |
+| Storage | Local JSON files for generated triage summaries, case manager status, case registry, and ticket history |
+| Tooling | npm, PowerShell helper scripts |
+
+## Core Features
+
+- **OpenSearch telemetry collection**: Queries `alert`, `dns`, `http`, `notice`, `conn`, and `ssl` datasets and stores summarized triage output.
+- **Security-category classification**: Covers C2/beaconing, malware, exploit attempts, DNS tunneling, lateral movement, brute force, reconnaissance, web exploitation, HTTP protocol anomalies, dual-use infrastructure, and external IP discovery.
+- **Case grouping**: Groups events into deterministic case records with timestamps, log counts, source/destination indicators, ports, hosts, URLs, DNS queries, signatures, and sample evidence.
+- **Dashboard v1**: Provides category summaries, case evidence, AI analysis, pivot execution, duplicate checks, and ticket preview/submission.
+- **Case Manager v1**: Runs an automated last-hour OpenSearch grouping job, ranks cases locally, investigates the top cases with AI, executes limited pivots, and displays live progress.
+- **Pivot execution**: Runs AI-suggested OpenSearch pivots across source IP, destination IP, signature, CVE, destination port, HTTP URL, host, DNS name, TLS SNI, and extended time windows.
+- **MantisBT workflow**: Checks likely duplicates, creates evidence-backed tickets, syncs user ticket history, and stores local analyst memory.
+- **Evidence links**: Generates OpenSearch Dashboards Discover URLs for case review where environment configuration supports it.
+
+## AI-Assisted Triage Workflow
+
+The AI layer is intentionally scoped. It receives structured case evidence and returns JSON containing:
+
+- Initial threat assessment and analyst reasoning.
+- Verdict candidates: `ESCALATE`, `LIKELY_FALSE_POSITIVE`, or `SUSPICIOUS_MONITOR`.
+- Confidence score and attack classification.
+- Ticket recommendation.
+- Up to two recommended pivots for follow-up investigation.
+
+The application then executes approved pivots through OpenSearch and can reassess the case using the pivot results. The analyst still reviews the ticket preview before submission.
+
+## MantisBT Ticketing Workflow
+
+S.H.A.M.S. integrates with MantisBT through the REST API:
+
+1. Build a case fingerprint from selected telemetry.
+2. Search recent MantisBT tickets for likely duplicates using IPs, signature, destination, host, and category.
+3. Generate a ticket preview containing assessment, evidence, pivots, OpenSearch query/link, severity, priority, and additional context.
+4. Allow the analyst to edit ticket fields.
+5. Submit the issue to MantisBT.
+6. Save local ticket history for future triage context.
+
+## Screenshots
+
+### Dashboard Overview
+
+![Dashboard v1 category summary and grouped OpenSearch cases.](docs/screenshots/01-dashboard-overview.png)
+
+Dashboard v1 summarizes OpenSearch-backed alert categories and grouped investigation cases.
+
+### Case Evidence
+
+![Selected case details with source, destination, signature, and sample evidence.](docs/screenshots/02-case-evidence.png)
+
+Grouped telemetry preserves source, destination, signature, timing, and sample evidence in one analyst-reviewable case.
+
+### AI Analysis and Pivot Results
+
+![AI verdict, confidence, analyst reasoning, recommended pivots, and pivot results.](docs/screenshots/03-ai-analysis-pivots.png)
+
+AI-assisted triage provides bounded reasoning, confidence, verdict guidance, and follow-up OpenSearch pivots.
 
 ### Ticket Registry
 
-The ticket registry is the analyst memory layer. It stores created, synced, and manually added Mantis tickets, including network indicators, ticket status, OpenSearch context, analyst decisions, and reuse notes.
+![Ticket Registry showing local ticket history and analyst memory.](docs/screenshots/06-ticket-registry.png)
 
-## High-Value Investigation Categories
+The Ticket Registry preserves created, synced, and manually added MantisBT tickets as local analyst memory.
 
-S.H.A.M.S prioritizes categories that commonly produce actionable SOC work:
-
-- Command and control / beaconing
-- Exploit attempts
-- DNS tunneling and suspicious DNS behavior
-- Lateral movement
-- Malware and Trojan activity
-- Brute force authentication attempts
-- Network reconnaissance and scanning
-- Web exploitation
-- HTTP protocol anomalies
-- Dual-use or abused infrastructure
-- External IP discovery
-
-The collector combines broad OpenSearch queries with post-query classification and noise reduction. This was an important part of the final project because several expected fields from the original Kibana approach were empty or low-value in the live OpenSearch environment. The final version uses fields such as `rule.name`, `rule.category`, `dns.host`, `zeek.dns.query`, `http.host`, `http.uri`, `url.full`, `zeek.notice.note`, `zeek.notice.msg`, and `zeek.ssl.server_name`.
+Additional useful captures before a final public release would be the MantisBT ticket preview modal and a Case Manager v1 live run.
 
 ## Repository Layout
 
@@ -123,6 +188,7 @@ The collector combines broad OpenSearch queries with post-query classification a
 |   |-- mantis.client.js
 |   |-- ai.service.js
 |   |-- pivot_executor.js
+|   |-- .env.example
 |   `-- services/
 |       |-- caseManagerV1.service.js
 |       |-- caseCandidateSync.service.js
@@ -137,58 +203,39 @@ The collector combines broad OpenSearch queries with post-query classification a
 |   |-- src/App.js
 |   |-- src/CaseManagerV1Page.js
 |   |-- src/TicketsPage.js
-|   `-- src/App.css
+|   |-- src/App.css
+|   `-- .env.example
+|
+|-- docs/
+|   |-- PORTFOLIO_NOTES.md
+|   `-- INTERVIEW_PREP.md
 |
 `-- README.md
 ```
 
-## Environment Configuration
+## Setup
 
-Create `backend/.env`:
+Prerequisites:
 
-```env
-PORT=5000
+- Node.js and npm
+- Access to an OpenSearch or OpenSearch Dashboards environment
+- MantisBT API token if using ticketing features
+- OpenAI API key if using AI-assisted analysis
 
-OPENSEARCH_NODE=https://your-opensearch-dashboards-or-node
-OPENSEARCH_USERNAME=your_username
-OPENSEARCH_PASSWORD=your_password
-OPENSEARCH_MODE=direct
-OPENSEARCH_INDEX=arkime_sessions3-*
-OPENSEARCH_INDEX_PATTERN_ID=arkime_sessions3-*
-
-MANTIS_URL=https://your-mantis
-MANTIS_API_TOKEN=your_token
-MANTIS_USERNAME=your_reporter_username
-
-OPENAI_API_KEY=your_openai_key
-OPENAI_CASE_MANAGER_MODEL=gpt-4o
-CASE_MANAGER_V1_MAX_AI_CASES=5
-CASE_MANAGER_V1_MAX_PIVOTS=2
-```
-
-Optional frontend environment:
-
-```env
-REACT_APP_BACKEND_URL=http://localhost:5000
-REACT_APP_MANTIS_URL=https://your-mantis
-```
-
-Runtime data is stored locally under `backend/data/` and is intentionally ignored by Git. This keeps ticket history, run status, and local case state out of the public repository.
-
-## Running Locally
-
-Install and start the backend:
+Backend:
 
 ```powershell
 cd backend
+Copy-Item .env.example .env
 npm install
 npm start
 ```
 
-Install and start the frontend:
+Frontend:
 
 ```powershell
 cd frontend
+Copy-Item .env.example .env
 npm install
 npm start
 ```
@@ -198,50 +245,100 @@ Default local URLs:
 ```text
 Backend:  http://localhost:5000
 Frontend: http://localhost:3000
+Health:   http://localhost:5000/api/health
 ```
 
-Health check:
+## Environment Variables
 
-```text
-GET http://localhost:5000/api/health
-```
+Use the included examples:
 
-## Key API Areas
+- `backend/.env.example`
+- `frontend/.env.example`
 
+Important backend settings:
+
+- `OPENSEARCH_NODE`
+- `OPENSEARCH_USERNAME`
+- `OPENSEARCH_PASSWORD`
+- `OPENSEARCH_MODE`
+- `OPENSEARCH_INDEX`
+- `OPENSEARCH_INDEX_PATTERN_ID`
+- `MANTIS_URL`
+- `MANTIS_API_TOKEN`
+- `MANTIS_USERNAME`
+- `OPENAI_API_KEY`
+- `OPENAI_CASE_MANAGER_MODEL`
+- `CASE_MANAGER_V1_MAX_AI_CASES`
+- `CASE_MANAGER_V1_MAX_PIVOTS`
+
+Runtime data is written locally under `backend/data/` and generated triage JSON files may be written under `backend/`. These are ignored by Git and should not be published if they contain real telemetry or customer/student lab identifiers.
+
+## API Areas
+
+- `GET /api/health` - backend health check.
 - `GET /api/triage-summary-v1` - load grouped OpenSearch summary data.
+- `GET /api/triage-raw-v1` - load raw collected triage data.
 - `POST /api/refresh-triage-v1` - refresh OpenSearch telemetry collection.
-- `POST /api/analyze-case` - run AI analysis for a case.
+- `POST /api/analyze-case` - run AI analysis for a selected case.
 - `POST /api/pivot-query` - execute an OpenSearch pivot.
-- `POST /api/reassess-case` - reassess after pivot evidence.
-- `POST /api/check-duplicates` - search Mantis for possible duplicates.
-- `POST /api/tickets/create` - create a Mantis ticket.
+- `POST /api/reassess-case` - reassess a case after pivot evidence.
+- `POST /api/check-duplicates` - search MantisBT for possible duplicate tickets.
+- `POST /api/tickets/create` - create a MantisBT ticket.
 - `GET /api/tickets/history` - load local ticket registry.
-- `POST /api/tickets/sync` - sync Mantis tickets into local history.
-- `GET /api/cases-v1/status` - load Case Manager v1 run status.
-- `POST /api/cases-v1/start` - start the automated last-hour investigation agent.
-- `POST /api/cases-v1/stop` - request a safe stop.
+- `POST /api/tickets/sync` - sync MantisBT tickets into local history.
+- `GET /api/cases-v1/status` - load Case Manager v1 status.
+- `POST /api/cases-v1/start` - start the automated last-hour investigation run.
+- `POST /api/cases-v1/stop` - request a safety stop.
 
-## Final Project Status
+## Security Disclaimer
 
-This repository is the final OpenSearch-workable version of S.H.A.M.S. It includes the stable capstone workflow:
+This project is a portfolio prototype for defensive security workflow automation. Do not connect it to production systems without proper review, authentication, authorization, secrets management, logging controls, and data-retention controls.
 
-- OpenSearch-backed telemetry collection
-- Dashboard v1 case review
-- AI case analysis and reassessment
-- Automated Case Manager v1 investigation
-- Evidence pivots
-- Mantis duplicate checks, ticket creation, and ticket sync
-- Local analyst memory through case and ticket history stores
+Before publishing:
 
-The project demonstrates how a SOC workflow can move beyond raw alert dashboards into a case-centered, AI-assisted investigation process while keeping the analyst in control of final ticket submission.
+- Remove real `.env` files.
+- Remove generated telemetry JSON and CSV exports containing real IPs, domains, URLs, hostnames, tickets, or API keys.
+- Redact screenshots.
+- Rotate any credential that may have been committed, copied into generated reports, screenshots, or prior commits.
+- Review AI-generated ticket content before submitting it to an operational ticketing system.
 
-## Security Notes
+## Lessons Learned
 
-- Do not commit `backend/.env`.
-- Do not commit runtime ticket/case JSON files from `backend/data/`.
-- Keep Mantis API tokens, OpenSearch credentials, and OpenAI keys in environment variables.
-- Review AI-generated ticket content before submitting to Mantis.
+- A useful SOC tool starts with workflow clarity, not just more alerts.
+- Field mapping matters. The final OpenSearch implementation had to use available fields such as `rule.name`, `rule.category`, `dns.host`, `zeek.dns.query`, `http.host`, `http.uri`, `url.full`, `zeek.notice.note`, `zeek.notice.msg`, and `zeek.ssl.server_name`.
+- Case grouping is more valuable when it preserves evidence and explainability.
+- AI assistance is most useful when bounded by structured prompts, pivot limits, JSON output, and analyst review.
+- Ticketing integration is part of detection engineering because the handoff must preserve context, evidence, and decision history.
 
-## Capstone Summary
+## Portfolio Positioning
 
-S.H.A.M.S shows how OpenSearch, security telemetry, AI analysis, and ticketing can be combined into one analyst-focused workflow. The system reduces repetitive triage work, preserves investigation context, and helps turn noisy alerts into clear, evidence-backed cases.
+Recommended repository name:
+
+`soc-triage-automation-opensearch`
+
+Other good options:
+
+- `shams-soc-triage-platform`
+- `opensearch-soc-case-manager`
+- `ai-assisted-soc-triage`
+
+Recommended GitHub topics:
+
+`soc`, `security-automation`, `opensearch`, `suricata`, `zeek`, `threat-hunting`, `incident-response`, `alert-triage`, `mantisbt`, `nodejs`, `react`, `cybersecurity-portfolio`, `ai-assisted-triage`
+
+Resume and LinkedIn copy are in [docs/PORTFOLIO_NOTES.md](docs/PORTFOLIO_NOTES.md). Interview preparation is in [docs/INTERVIEW_PREP.md](docs/INTERVIEW_PREP.md).
+
+## Publish Checklist
+
+- [ ] Rename the repository to `soc-triage-automation-opensearch` or another portfolio-focused name.
+- [ ] Confirm `backend/.env` is not tracked and remove it from any publish package.
+- [ ] Remove or redact generated telemetry exports before publishing.
+- [ ] Review the tracked DOCX in `generated/` for personal, school-only, or sensitive details.
+- [ ] Add redacted screenshots under `docs/screenshots/`.
+- [ ] Add one short animated GIF under `docs/screenshots/shams-investigation-workflow.gif`.
+- [ ] Add a repository license or explicitly mark the project as all rights reserved.
+- [ ] Add a GitHub social preview image using the dashboard overview screenshot.
+- [ ] Verify README links and Mermaid diagrams render on GitHub.
+- [ ] Run `npm install` and `npm start` in both `backend/` and `frontend/` from a clean clone.
+- [ ] Rotate any credential that appeared in local files, generated reports, screenshots, or prior commits.
+- [ ] Add GitHub topics and a concise repository description.
