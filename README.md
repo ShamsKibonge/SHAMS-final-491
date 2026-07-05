@@ -294,14 +294,6 @@ Runtime data is written locally under `backend/data/` and generated triage JSON 
 
 This project is a portfolio prototype for defensive security workflow automation. Do not connect it to production systems without proper review, authentication, authorization, secrets management, logging controls, and data-retention controls.
 
-Before publishing:
-
-- Remove real `.env` files.
-- Remove generated telemetry JSON and CSV exports containing real IPs, domains, URLs, hostnames, tickets, or API keys.
-- Redact screenshots.
-- Rotate any credential that may have been committed, copied into generated reports, screenshots, or prior commits.
-- Review AI-generated ticket content before submitting it to an operational ticketing system.
-
 ## Lessons Learned
 
 - A useful SOC tool starts with workflow clarity, not just more alerts.
@@ -309,36 +301,3 @@ Before publishing:
 - Case grouping is more valuable when it preserves evidence and explainability.
 - AI assistance is most useful when bounded by structured prompts, pivot limits, JSON output, and analyst review.
 - Ticketing integration is part of detection engineering because the handoff must preserve context, evidence, and decision history.
-
-## Portfolio Positioning
-
-Recommended repository name:
-
-`soc-triage-automation-opensearch`
-
-Other good options:
-
-- `shams-soc-triage-platform`
-- `opensearch-soc-case-manager`
-- `ai-assisted-soc-triage`
-
-Recommended GitHub topics:
-
-`soc`, `security-automation`, `opensearch`, `suricata`, `zeek`, `threat-hunting`, `incident-response`, `alert-triage`, `mantisbt`, `nodejs`, `react`, `cybersecurity-portfolio`, `ai-assisted-triage`
-
-Resume and LinkedIn copy are in [docs/PORTFOLIO_NOTES.md](docs/PORTFOLIO_NOTES.md). Interview preparation is in [docs/INTERVIEW_PREP.md](docs/INTERVIEW_PREP.md).
-
-## Publish Checklist
-
-- [ ] Rename the repository to `soc-triage-automation-opensearch` or another portfolio-focused name.
-- [ ] Confirm `backend/.env` is not tracked and remove it from any publish package.
-- [ ] Remove or redact generated telemetry exports before publishing.
-- [ ] Review the tracked DOCX in `generated/` for personal, school-only, or sensitive details.
-- [ ] Add redacted screenshots under `docs/screenshots/`.
-- [ ] Add one short animated GIF under `docs/screenshots/shams-investigation-workflow.gif`.
-- [ ] Add a repository license or explicitly mark the project as all rights reserved.
-- [ ] Add a GitHub social preview image using the dashboard overview screenshot.
-- [ ] Verify README links and Mermaid diagrams render on GitHub.
-- [ ] Run `npm install` and `npm start` in both `backend/` and `frontend/` from a clean clone.
-- [ ] Rotate any credential that appeared in local files, generated reports, screenshots, or prior commits.
-- [ ] Add GitHub topics and a concise repository description.
